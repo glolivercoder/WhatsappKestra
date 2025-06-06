@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  kestra:
+    image: kestra/kestra:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - KESTRA_DATABASE_TYPE=postgresql
+      - KESTRA_DATABASE_URL=jdbc:postgresql://db:5432/kestra
+      - KESTRA_DATABASE_USERNAME=kestra
+      - KESTRA_DATABASE_PASSWORD=kestra
+      - KESTRA_SERVER_URL=http://localhost:8080
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: kestra
+    ports:
+      - "5432:5432"
+    volumes:
+      - kestra-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  whatsapp:
+    image: wppconnect/server:latest
+    environment:
+      - PORT=21465
+    ports:
+      - "21465:21465"
+    restart: unless-stopped
+
+  agent:
+    build: ./agent
+    volumes:
+      - ./agent:/app
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - WHATSAPP_API_URL=http://whatsapp:21465
+      - KESTRA_API_URL=http://kestra:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      - whatsapp
+      - kestra
+    restart: unless-stopped
+
+  weaviate:
+    image: semitechnologies/weaviate:1.25.3
+    ports:
+      - "8081:8080"
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - ENABLE_MODULES=text2vec-openai
+    volumes:
+      - weaviate-data:/var/lib/weaviate
+    restart: unless-stopped
+
+volumes:
+  kestra-db-data:
+  weaviate-data:
