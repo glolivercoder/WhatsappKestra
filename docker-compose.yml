@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   kestra:
     image: kestra/kestra:latest
@@ -28,7 +26,7 @@ services:
     restart: unless-stopped
 
   whatsapp:
-    image: wppconnect/server:latest
+    image: wppconnectteam/wppconnect-server:latest
     environment:
       - PORT=21465
     ports:
